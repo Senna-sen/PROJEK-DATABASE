@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistem Stok Minimarket</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --card: #fff; --text: #1f2937; --muted: #6b7280; --line: #e5e7eb;
+    --brand: #1d4ed8; --ok: #15803d; --okbg: #dcfce7;
+    --warn: #b45309; --warnbg: #fef3c7;
+    --soon: #c2410c; --soonbg: #ffedd5;
+    --bad: #b91c1c; --badbg: #fee2e2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  header { background: var(--brand); color: #fff; padding: 18px 24px; }
+  header h1 { margin: 0; font-size: 1.3rem; }
+  header p { margin: 4px 0 0; opacity: .85; font-size: .9rem; }
+  main { max-width: 1150px; margin: 0 auto; padding: 20px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .card { background: var(--card); border-radius: 12px; padding: 16px; border-left: 5px solid var(--brand); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .card small { color: var(--muted); }
+  .card b { display: block; font-size: 1.7rem; margin-top: 4px; }
+  .card.warn { border-color: var(--warn); } .card.soon { border-color: var(--soon); } .card.bad { border-color: var(--bad); }
+
+  section { background: var(--card); border-radius: 12px; padding: 18px; margin-bottom: 22px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  section h2 { margin: 0 0 14px; font-size: 1.1rem; }
+
+  .tools { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  input, select { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: .95rem; background: #fff; color: var(--text); }
+  input { flex: 1; min-width: 200px; }
+
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { background: #f9fafb; color: var(--muted); font-weight: 600; position: sticky; top: 0; }
+  td.num, th.num { text-align: right; }
+  tr:hover td { background: #f9fafb; }
+
+  .badge { padding: 3px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; }
+  .AMAN { background: var(--okbg); color: var(--ok); }
+  .MENIPIS { background: var(--warnbg); color: var(--warn); }
+  .HAMPIR { background: var(--soonbg); color: var(--soon); }
+  .KADALUARSA { background: var(--badbg); color: var(--bad); }
+
+  button { background: var(--brand); color: #fff; border: 0; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: .85rem; }
+  button:hover { filter: brightness(1.1); }
+  button.ghost { background: #e5e7eb; color: var(--text); }
+  .empty { text-align: center; color: var(--muted); padding: 24px; }
+
+  /* Struk */
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; padding: 16px; }
+  .modal.open { display: flex; }
+  .struk { background: #fff; width: 100%; max-width: 360px; max-height: 90vh; overflow: auto; padding: 22px; border-radius: 10px; font-family: "Courier New", monospace; font-size: .88rem; }
+  .struk h3 { text-align: center; margin: 0; }
+  .struk .c { text-align: center; color: var(--muted); margin-bottom: 8px; }
+  .struk hr { border: 0; border-top: 1px dashed #999; margin: 10px 0; }
+  .struk .row { display: flex; justify-content: space-between; gap: 8px; }
+  .struk .item { margin-bottom: 6px; }
+  .struk .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .struk .actions button { flex: 1; }
+
+  button.danger { background: var(--bad); }
+  td button { padding: 4px 10px; margin-right: 4px; }
+  .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .head h2 { margin: 0; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 22px; }
+  .box { background: #fff; padding: 22px; border-radius: 10px; width: 100%; max-width: 420px; max-height: 90vh; overflow: auto; }
+  .box h3 { margin-top: 0; }
+  .box label, .form label { display: block; margin: 8px 0 4px; font-size: .85rem; color: var(--muted); }
+  .box input, .box select, .form input, .form select { width: 100%; }
+  .btns { display: flex; gap: 8px; margin-top: 16px; }
+  .total { font-size: 1.1rem; margin: 12px 0; }
+
+  @media print {
+    #modalForm { display: none !important; }
+    header, main { display: none !important; }
+    .modal { position: static; background: #fff; display: flex !important; padding: 0; }
+    .struk { max-width: 100%; max-height: none; }
+    .actions { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sistem Stok Minimarket</h1>
+  <p>Pantau stok, tanggal kadaluarsa, dan transaksi penjualan</p>
+</header>
+
+<main>
+  <div class="cards">
+    <div class="card"><small>Total Produk</small><b id="cTotal">-</b></div>
+    <div class="card warn"><small>Stok Menipis</small><b id="cMenipis">-</b></div>
+    <div class="card soon"><small>Hampir Kadaluarsa</small><b id="cHampir">-</b></div>
+    <div class="card bad"><small>Ada yang Kadaluarsa</small><b id="cKadaluarsa">-</b></div>
+    <div class="card"><small>Total Pendapatan</small><b id="cOmzet">-</b></div>
+  </div>
+
+  <div class="two">
+    <section>
+      <h2>Kasir (Transaksi Baru)</h2>
+      <div class="tools">
+        <select id="kProduk"></select>
+        <input id="kJumlah" type="number" min="1" value="1" style="max-width:90px;min-width:70px">
+        <button onclick="tambahKeranjang()">Tambah</button>
+      </div>
+      <table>
+        <thead><tr><th>Barang</th><th class="num">Qty</th><th class="num">Subtotal</th><th></th></tr></thead>
+        <tbody id="keranjang"></tbody>
+      </table>
+      <div class="total"><b>Total: <span id="kTotal">Rp0</span></b></div>
+      <div class="tools">
+        <input id="kBayar" type="number" placeholder="Uang bayar">
+        <button onclick="prosesBayar()">Bayar &amp; simpan</button>
+      </div>
+    </section>
+
+    <section class="form">
+      <h2>Barang Masuk</h2>
+      <label>Produk</label><select id="mProduk"></select>
+      <label>Supplier</label><select id="mSupplier"></select>
+      <label>Jumlah masuk</label><input id="mJumlah" type="number" min="1">
+      <label>Tanggal masuk</label><input id="mMasuk" type="date">
+      <label>Tanggal kadaluarsa</label><input id="mExp" type="date">
+      <div class="btns"><button onclick="simpanMasuk()">Simpan barang masuk</button></div>
+    </section>
+  </div>
+
+  <section>
+    <div class="head"><h2>Data Stok Barang</h2><button onclick="formProduk()">+ Tambah produk</button></div>
+    <div class="tools">
+      <input id="cari" type="search" placeholder="Cari nama barang atau barcode...">
+      <select id="fKategori"><option value="">Semua kategori</option></select>
+      <select id="fStatus">
+        <option value="">Semua status</option>
+        <option>AMAN</option>
+        <option>STOK MENIPIS</option>
+        <option>HAMPIR KADALUARSA</option>
+        <option>ADA YANG KADALUARSA</option>
+      </select>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Barcode</th><th>Nama Barang</th><th>Kategori</th><th>Satuan</th>
+            <th class="num">Harga</th><th class="num">Masuk</th><th class="num">Terjual</th>
+            <th class="num">Sisa</th><th class="num">Kadaluarsa (qty)</th>
+            <th>Kadaluarsa Terdekat</th><th>Status</th><th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tbStok"><tr><td colspan="11" class="empty">Memuat data...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Riwayat Transaksi</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>No</th><th>Tanggal</th><th class="num">Item</th><th class="num">Total</th><th class="num">Bayar</th><th class="num">Kembali</th><th></th></tr>
+        </thead>
+        <tbody id="tbTrx"><tr><td colspan="7" class="empty">Memuat data...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modalForm"><div class="box" id="box"></div></div>
+
+<div class="modal" id="modal">
+  <div class="struk" id="struk"></div>
+</div>
+
+<script>
+  const rp = n => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(n));
+  const tgl = d => d ? new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+  const waktu = d => new Date(d).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const $ = id => document.getElementById(id);
+
+  const kelas = s => s === 'AMAN' ? 'AMAN' : s === 'STOK MENIPIS' ? 'MENIPIS' : s === 'HAMPIR KADALUARSA' ? 'HAMPIR' : 'KADALUARSA';
+  let dataStok = [];
+
+  async function ambil(url) {
+    const r = await fetch(url);
+    const teks = await r.text();
+    let j;
+    try { j = JSON.parse(teks); }
+    catch { throw new Error(`Server tidak mengenali ${url}. Pastikan server.js versi terbaru sudah dijalankan ulang.`); }
+    if (!r.ok) throw new Error(j.error || 'Gagal mengambil data');
+    return j;
+  }
+
+  function gambarStok() {
+    const q = $('cari').value.toLowerCase();
+    const kat = $('fKategori').value, st = $('fStatus').value;
+    const hasil = dataStok.filter(r =>
+      (!q || r.nama.toLowerCase().includes(q) || r.kode_barcode.includes(q)) &&
+      (!kat || r.nama_kategori === kat) && (!st || r.status === st));
+
+    $('tbStok').innerHTML = hasil.length ? hasil.map(r => `
+      <tr>
+        <td>${esc(r.kode_barcode)}</td><td><b>${esc(r.nama)}</b></td><td>${esc(r.nama_kategori)}</td><td>${esc(r.satuan)}</td>
+        <td class="num">${rp(r.harga_jual)}</td><td class="num">${r.stok_masuk}</td><td class="num">${r.stok_terjual}</td>
+        <td class="num"><b>${r.stok_sisa}</b></td><td class="num">${r.stok_kadaluarsa}</td>
+        <td>${tgl(r.kadaluarsa_terdekat)}</td>
+        <td><span class="badge ${kelas(r.status)}">${esc(r.status)}</span></td>
+        <td><button class="ghost" onclick="formProduk(${r.id})">Edit</button><button class="danger" onclick="hapusProduk(${r.id})">Hapus</button></td>
+      </tr>`).join('') : '<tr><td colspan="11" class="empty">Tidak ada barang yang cocok.</td></tr>';
+  }
+
+  async function muatStok() {
+    try {
+      dataStok = await ambil('/api/stok');
+      const hitung = s => dataStok.filter(r => r.status === s).length;
+      $('cTotal').textContent = dataStok.length;
+      $('cMenipis').textContent = hitung('STOK MENIPIS');
+      $('cHampir').textContent = hitung('HAMPIR KADALUARSA');
+      $('cKadaluarsa').textContent = hitung('ADA YANG KADALUARSA');
+      $('fKategori').innerHTML = '<option value="">Semua kategori</option>';
+      [...new Set(dataStok.map(r => r.nama_kategori))].forEach(k => {
+        $('fKategori').insertAdjacentHTML('beforeend', `<option>${esc(k)}</option>`);
+      });
+      gambarStok();
+      await isiPilihan().catch(e => alert(e.message));
+    } catch (e) {
+      $('tbStok').innerHTML = `<tr><td colspan="11" class="empty">${esc(e.message)}</td></tr>`;
+    }
+  }
+
+  async function muatTransaksi() {
+    try {
+      const data = await ambil('/api/transaksi');
+      $('cOmzet').textContent = rp(data.reduce((a, t) => a + Number(t.total), 0));
+      $('tbTrx').innerHTML = data.length ? data.map(t => `
+        <tr>
+          <td>#${t.id}</td><td>${waktu(t.tanggal)}</td><td class="num">${t.jumlah_item}</td>
+          <td class="num">${rp(t.total)}</td><td class="num">${rp(t.bayar)}</td>
+          <td class="num">${rp(t.bayar - t.total)}</td>
+          <td><button onclick="lihatStruk(${t.id})">Lihat struk</button><button class="danger" onclick="hapusTrx(${t.id})">Hapus</button></td>
+        </tr>`).join('') : '<tr><td colspan="7" class="empty">Belum ada transaksi.</td></tr>';
+    } catch (e) {
+      $('tbTrx').innerHTML = `<tr><td colspan="7" class="empty">${esc(e.message)}</td></tr>`;
+    }
+  }
+
+  async function lihatStruk(id) {
+    try {
+      const { transaksi: t, items } = await ambil('/api/transaksi/' + id);
+      $('struk').innerHTML = `
+        <h3>MINIMARKET LAB</h3>
+        <div class="c">Struk #${t.id}<br>${waktu(t.tanggal)}</div><hr>
+        ${items.map(i => `
+          <div class="item">${esc(i.nama)}
+            <div class="row"><span>${i.jumlah} x ${rp(i.harga_satuan)}</span><span>${rp(i.subtotal)}</span></div>
+          </div>`).join('')}
+        <hr>
+        <div class="row"><b>Total</b><b>${rp(t.total)}</b></div>
+        <div class="row"><span>Bayar</span><span>${rp(t.bayar)}</span></div>
+        <div class="row"><span>Kembali</span><span>${rp(t.bayar - t.total)}</span></div><hr>
+        <div class="c">Terima kasih sudah berbelanja</div>
+        <div class="actions">
+          <button onclick="window.print()">Cetak</button>
+          <button class="ghost" onclick="tutupStruk()">Tutup</button>
+        </div>`;
+      $('modal').classList.add('open');
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+  function tutupStruk() { $('modal').classList.remove('open'); }
+  $('modal').addEventListener('click', e => { if (e.target.id === 'modal') tutupStruk(); });
+
+  // ================= CRUD =================
+  let produk = [], keranjang = [];
+
+  const kirim = async (url, method, body) => {
+    const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Server tidak mengenali permintaan. Jalankan ulang server.js versi terbaru.');
+    return j;
+  };
+  const opsi = (arr, v, t) => arr.map(x => `<option value="${x[v]}">${esc(x[t])}</option>`).join('');
+  const segarkan = () => Promise.all([muatStok(), muatTransaksi()]);
+
+  async function isiPilihan() {
+    produk = await ambil('/api/produk');
+    const sup = await ambil('/api/supplier');
+    const layak = dataStok.filter(r => r.stok_layak_jual > 0).map(r => ({ id: r.id, t: `${r.nama} (sisa ${r.stok_layak_jual})` }));
+    $('kProduk').innerHTML = opsi(layak, 'id', 't');
+    $('mProduk').innerHTML = opsi(produk, 'id', 'nama');
+    $('mSupplier').innerHTML = opsi(sup, 'id', 'nama');
+  }
+
+  // --- Produk: tambah, edit, hapus ---
+  async function formProduk(id) {
+    const kat = await ambil('/api/kategori');
+    const p = produk.find(x => x.id === id) || { kode_barcode: '', nama: '', id_kategori: kat[0]?.id, satuan: 'pcs', harga_beli: '', harga_jual: '', stok_minimum: 10 };
+    $('box').innerHTML = `<h3>${id ? 'Edit' : 'Tambah'} Produk</h3>
+      <label>Barcode</label><input id="fBarcode" value="${esc(p.kode_barcode)}">
+      <label>Nama</label><input id="fNama" value="${esc(p.nama)}">
+      <label>Kategori</label><select id="fKat">${opsi(kat, 'id', 'nama_kategori')}</select>
+      <label>Satuan</label><input id="fSatuan" value="${esc(p.satuan)}">
+      <label>Harga beli</label><input id="fBeli" type="number" value="${p.harga_beli}">
+      <label>Harga jual</label><input id="fJual" type="number" value="${p.harga_jual}">
+      <label>Stok minimum</label><input id="fMin" type="number" value="${p.stok_minimum}">
+      <div class="btns"><button onclick="simpanProduk(${id || 0})">Simpan</button><button class="ghost" onclick="tutupForm()">Batal</button></div>`;
+    $('fKat').value = p.id_kategori;
+    $('modalForm').classList.add('open');
+  }
+  async function simpanProduk(id) {
+    const body = { kode_barcode: $('fBarcode').value.trim(), nama: $('fNama').value.trim(), id_kategori: $('fKat').value,
+      satuan: $('fSatuan').value.trim(), harga_beli: $('fBeli').value, harga_jual: $('fJual').value, stok_minimum: $('fMin').value };
+    try { await kirim(id ? '/api/produk/' + id : '/api/produk', id ? 'PUT' : 'POST', body); tutupForm(); await muatStok(); }
+    catch (e) { alert(e.message); }
+  }
+  async function hapusProduk(id) {
+    if (!confirm('Hapus produk ini?')) return;
+    try { await kirim('/api/produk/' + id, 'DELETE'); await muatStok(); } catch (e) { alert(e.message); }
+  }
+  function tutupForm() { $('modalForm').classList.remove('open'); }
+  $('modalForm').addEventListener('click', e => { if (e.target.id === 'modalForm') tutupForm(); });
+
+  // --- Barang masuk ---
+  async function simpanMasuk() {
+    try {
+      await kirim('/api/batch', 'POST', { id_produk: $('mProduk').value, id_supplier: $('mSupplier').value,
+        jumlah_masuk: $('mJumlah').value, tanggal_masuk: $('mMasuk').value, tanggal_kadaluarsa: $('mExp').value });
+      $('mJumlah').value = ''; await muatStok(); alert('Barang masuk tersimpan.');
+    } catch (e) { alert(e.message); }
+  }
+  $('mMasuk').value = new Date().toISOString().slice(0, 10);
+
+  // --- Kasir ---
+  function tambahKeranjang() {
+    const id = Number($('kProduk').value), jml = Number($('kJumlah').value);
+    const p = dataStok.find(r => r.id === id);
+    if (!p || !(jml > 0)) return alert('Pilih barang dan isi jumlah.');
+    const ada = keranjang.find(k => k.id_produk === id);
+    if (ada) ada.jumlah += jml; else keranjang.push({ id_produk: id, nama: p.nama, harga: Number(p.harga_jual), jumlah: jml });
+    gambarKeranjang();
+  }
+  function gambarKeranjang() {
+    $('keranjang').innerHTML = keranjang.length ? keranjang.map((k, i) => `
+      <tr><td>${esc(k.nama)}</td><td class="num">${k.jumlah}</td><td class="num">${rp(k.harga * k.jumlah)}</td>
+      <td><button class="ghost" onclick="keranjang.splice(${i},1);gambarKeranjang()">x</button></td></tr>`).join('')
+      : '<tr><td colspan="4" class="empty">Keranjang kosong</td></tr>';
+    $('kTotal').textContent = rp(keranjang.reduce((a, k) => a + k.harga * k.jumlah, 0));
+  }
+  async function prosesBayar() {
+    try {
+      const r = await kirim('/api/transaksi', 'POST', {
+        items: keranjang.map(k => ({ id_produk: k.id_produk, jumlah: k.jumlah })), bayar: $('kBayar').value });
+      keranjang = []; $('kBayar').value = ''; gambarKeranjang();
+      await segarkan(); lihatStruk(r.id);
+    } catch (e) { alert(e.message); }
+  }
+  async function hapusTrx(id) {
+    if (!confirm(`Hapus transaksi #${id}? Stok barangnya akan kembali.`)) return;
+    try { await kirim('/api/transaksi/' + id, 'DELETE'); await segarkan(); } catch (e) { alert(e.message); }
+  }
+  gambarKeranjang();
+
+  ['cari', 'fKategori', 'fStatus'].forEach(id => $(id).addEventListener('input', gambarStok));
+  muatStok();
+  muatTransaksi();
+</script>
+</body>
+</html>
